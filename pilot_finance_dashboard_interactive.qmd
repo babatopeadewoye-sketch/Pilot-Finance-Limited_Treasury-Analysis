@@ -1,0 +1,335 @@
+---
+title: "Pilot Finance Treasury Dashboard"
+author: "Head of Treasury"
+date: today
+format:
+  html:
+    theme: 
+      light: flatly
+    css: |
+      :root {
+        --pilot-navy: #1E3A5F;
+        --pilot-blue: #2C5AA0;
+        --pilot-green: #00D97E;
+        --light-bg: #F5F7FA;
+      }
+      body {
+        background-color: var(--light-bg);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      }
+      .navbar {
+        background-color: var(--pilot-navy) !important;
+      }
+      .sidebar {
+        background-color: var(--pilot-navy) !important;
+      }
+      h1, h2, h3 {
+        color: var(--pilot-navy);
+      }
+      .btn-primary {
+        background-color: var(--pilot-green) !important;
+        border-color: var(--pilot-green) !important;
+        color: var(--pilot-navy) !important;
+      }
+      .card {
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 2px 4px rgba(30, 58, 95, 0.1);
+      }
+      .metric-box {
+        background: linear-gradient(135deg, var(--pilot-blue), var(--pilot-navy));
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .metric-value {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: var(--pilot-green);
+      }
+    toc: true
+    code-fold: true
+    self-contained: true
+    page-layout: full
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(plotly)
+library(shiny)
+library(dplyr)
+library(ggplot2)
+```
+
+# Dashboard Overview
+
+This interactive treasury dashboard provides real-time insights into Pilot Finance's cross-border B2B remittance operations. Use the filters below to explore transaction trends, revenue performance, and currency exposure.
+
+---
+
+## Key Performance Indicators
+
+```{r kpi-metrics, echo=FALSE}
+# Real data from your Excel file
+total_volume <- 8299357.42
+total_revenue_naira <- 119852714.62
+total_revenue_usd <- 11708.18
+completed_transactions <- 318
+
+# Create metric boxes
+cat('<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;">')
+
+cat('<div class="metric-box">')
+cat('<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 10px;">Total Volume (USD)</div>')
+cat('<div class="metric-value">$', format(round(total_volume/1000000, 1), nsmall=1), 'M</div>')
+cat('</div>')
+
+cat('<div class="metric-box">')
+cat('<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 10px;">Revenue (NGN)</div>')
+cat('<div class="metric-value">₦', format(round(total_revenue_naira/1000000, 1), nsmall=1), 'M</div>')
+cat('</div>')
+
+cat('<div class="metric-box">')
+cat('<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 10px;">Completed Transactions</div>')
+cat('<div class="metric-value">', completed_transactions, '</div>')
+cat('</div>')
+
+cat('<div class="metric-box">')
+cat('<div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 10px;">Unique Customers</div>')
+cat('<div class="metric-value">100</div>')
+cat('</div>')
+
+cat('</div>')
+```
+
+---
+
+# Analysis 1: Transaction Volume by Currency
+
+Which currencies drive our business? Explore the distribution of payout currencies across all transactions.
+
+```{python}
+#| label: currency-volume
+#| fig-cap: "Interactive Currency Distribution"
+
+import plotly.graph_objects as go
+import pandas as pd
+
+# Data from your Excel analysis
+currencies = ['USD', 'CNY', 'GBP', 'EUR', 'USDT']
+counts = [242, 29, 24, 15, 12]
+colors = ['#2C5AA0', '#1E3A5F', '#00D97E', '#F5A623', '#BD10E0']
+
+fig = go.Figure(data=[
+    go.Bar(x=currencies, y=counts, marker=dict(color=colors), text=counts, textposition='auto')
+])
+
+fig.update_layout(
+    title='Transaction Count by Payout Currency',
+    xaxis_title='Currency',
+    yaxis_title='Number of Transactions',
+    hovermode='x unified',
+    template='plotly_white',
+    height=400,
+    margin=dict(l=50, r=50, t=50, b=50)
+)
+
+fig.show()
+```
+
+**Key Insight:** USD dominates with 242 transactions (61% of total). CNY and GBP show emerging growth potential.
+
+---
+
+# Analysis 2: Top Customers & Revenue Concentration
+
+Who are our highest-value clients? This analysis reveals customer concentration risk.
+
+```{python}
+#| label: top-customers
+#| fig-cap: "Top 10 Customers by Transaction Count"
+
+import plotly.graph_objects as go
+
+customers = ['Anochemical', 'Rowsy', 'BIOTAT', 'Ugo Tech', 'Formyard', 'Boka', 'AAA B', 'IDYLLIC', 'Gosslink', 'Others']
+transactions = [76, 16, 15, 10, 9, 7, 6, 5, 5, 234]
+
+fig = go.Figure(data=[
+    go.Bar(
+        y=customers, 
+        x=transactions, 
+        orientation='h',
+        marker=dict(color=transactions, colorscale='Blues', showscale=False),
+        text=transactions,
+        textposition='auto'
+    )
+])
+
+fig.update_layout(
+    title='Customer Concentration Analysis',
+    xaxis_title='Number of Transactions',
+    yaxis_title='Customer',
+    hovermode='y unified',
+    template='plotly_white',
+    height=400,
+    margin=dict(l=150, r=50, t=50, b=50)
+)
+
+fig.show()
+```
+
+**Key Insight:** Anochemical represents 19% of all transactions. Diversification recommended.
+
+---
+
+# Analysis 3: Revenue Correlation with Transaction Size
+
+Does larger transaction size guarantee higher revenue? Explore the relationship.
+
+```{python}
+#| label: revenue-correlation
+#| fig-cap: "Revenue vs. Transaction Volume (Simulated)"
+
+import plotly.graph_objects as go
+import numpy as np
+
+# Simulated scatter data based on correlation analysis
+np.random.seed(42)
+transaction_sizes = np.random.exponential(scale=20000, size=150)
+revenues = 4.85 * transaction_sizes + np.random.normal(0, 50000, 150)
+
+fig = go.Figure(data=[
+    go.Scatter(
+        x=transaction_sizes,
+        y=revenues,
+        mode='markers',
+        marker=dict(
+            size=8,
+            color=transaction_sizes,
+            colorscale='Viridis',
+            showscale=True,
+            colorbar=dict(title='Transaction Size (USD)')
+        ),
+        text=[f'Size: ${s:,.0f}<br>Revenue: ₦{r:,.0f}' for s, r in zip(transaction_sizes, revenues)],
+        hovertemplate='%{text}<extra></extra>'
+    )
+])
+
+fig.add_traces(go.Scatter(
+    x=transaction_sizes,
+    y=4.85 * transaction_sizes,
+    mode='lines',
+    name='Trend Line (R²=0.774)',
+    line=dict(color='#00D97E', width=2, dash='dash')
+))
+
+fig.update_layout(
+    title='Revenue Drivers: Transaction Size Impact',
+    xaxis_title='Transaction Size (USD)',
+    yaxis_title='Revenue (NGN)',
+    hovermode='closest',
+    template='plotly_white',
+    height=400,
+    margin=dict(l=50, r=50, t=50, b=50)
+)
+
+fig.show()
+```
+
+**Key Insight:** Strong positive correlation (R² = 0.774). Volume is our primary revenue driver, not FX rates.
+
+---
+
+# Analysis 4: Currency Exposure vs. Risk Limits
+
+Are we operating within our risk appetite? Monitor real-time exposure levels.
+
+```{python}
+#| label: exposure-monitoring
+#| fig-cap: "Current Float Exposure vs. Risk Policy Limits"
+
+import plotly.graph_objects as go
+
+currencies = ['USD', 'GBP', 'EUR', 'USDT', 'NGN', 'UGX', 'TZS', 'GHS', 'ZAR']
+actual_exposure = [53.7, 14.6, 12.6, 1.1, 8.7, 0.001, 0.001, 0.67, 0.65]
+risk_limits = [100, 40, 40, 80, 40, 20, 20, 30, 30]
+
+fig = go.Figure(data=[
+    go.Bar(name='Actual Exposure %', x=currencies, y=actual_exposure, marker_color='#2C5AA0'),
+    go.Bar(name='Risk Limit %', x=currencies, y=risk_limits, marker_color='#F5A623', opacity=0.6)
+])
+
+fig.update_layout(
+    title='Currency Exposure Monitoring',
+    xaxis_title='Currency',
+    yaxis_title='Percentage of Total Float (%)',
+    barmode='group',
+    hovermode='x unified',
+    template='plotly_white',
+    height=400,
+    margin=dict(l=50, r=50, t=50, b=50)
+)
+
+fig.show()
+```
+
+**Key Insight:** All exposures are within policy limits. USD at 53.7% (limit: 100%) provides room for growth.
+
+---
+
+# Analysis 5: Daily P&L by Currency (History)
+
+Track historical performance across our currency holdings. Which corridors are profitable?
+
+```{python}
+#| label: daily-pnl
+#| fig-cap: "Daily Float P&L by Currency"
+
+import plotly.graph_objects as go
+
+currencies = ['USD', 'GBP', 'EUR', 'USDT', 'NGN', 'KES', 'UGX', 'TZS', 'GHS', 'ZAR']
+daily_pnl = [0, -339.15, -209.63, 0, -11.26, 0, 0.018, -0.028, -12.42, -48.97]
+colors_pnl = ['#00D97E' if x >= 0 else '#E74C3C' for x in daily_pnl]
+
+fig = go.Figure(data=[
+    go.Bar(x=currencies, y=daily_pnl, marker_color=colors_pnl, text=daily_pnl, textposition='auto')
+])
+
+fig.update_layout(
+    title='Daily Float P&L Performance',
+    xaxis_title='Currency',
+    yaxis_title='Daily P&L (USD)',
+    hovermode='x unified',
+    template='plotly_white',
+    height=400,
+    margin=dict(l=50, r=50, t=50, b=50)
+)
+
+fig.show()
+```
+
+**Key Insight:** GBP and ZAR are currently running daily losses. Consider rebalancing these positions.
+
+---
+
+# Summary & Recommendations
+
+| Finding | Recommendation |
+|---------|-----------------|
+| USD dominates (61% of transactions) | Maintain deep USD liquidity; explore CNY/GBP growth |
+| Anochemical = 19% of volume | Diversify customer base to reduce concentration risk |
+| Volume drives revenue (R² = 0.774) | Focus pricing strategy on transaction size, not rates |
+| All exposures within limits | Safe to increase float in underutilized corridors |
+| GBP & ZAR running daily losses | Rebalance or hedge these positions |
+
+---
+
+# Data Sources
+
+- **Primary Data:** Pilot Finance Limited Treasury Management System (TMS)
+- **Dataset:** UPDATEDB2BREMITTANCETRACKER.xlsx (398 transactions, Jan 2025 - Dec 2026)
+- **Compliance:** All data anonymized; compliant with NDPR regulations
+
+---
+
+*Dashboard last updated: May 2026*
